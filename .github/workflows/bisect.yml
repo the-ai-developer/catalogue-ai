@@ -1,0 +1,17 @@
+name: bisect
+on:
+  push:
+    branches: [main]
+jobs:
+  indexurl:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pip install numpy pillow matplotlib torch --index-url https://download.pytorch.org/whl/cpu
+  plainurl:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pip install numpy pillow
+  quoted:
+    runs-on: ubuntu-latest
+    steps:
+      - run: "pip install torch --index-url https://download.pytorch.org/whl/cpu"
