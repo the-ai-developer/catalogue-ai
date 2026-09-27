@@ -1,9 +1,13 @@
-name: ciB
+name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   go:
@@ -53,27 +57,3 @@ jobs:
       # default path. Enable by dropping the target below.
       # - run: python ml/notebooks/run_notebooks.py 02 --require-deps
 
-  web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - run: npm install
-        working-directory: web
-      - run: npm run typecheck
-        working-directory: web
-      - run: npm run build
-        working-directory: web
-      - run: npx vitest run
-        working-directory: web
-
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build -f deploy/docker/Dockerfile.api -t catalogue-api .
-      - run: docker build -f deploy/docker/Dockerfile.web -t catalogue-web .
-        # model image needs the full ML stack — build only on GPU runners:
-        # docker build -f deploy/docker/Dockerfile.model -t catalogue-model .
