@@ -41,7 +41,7 @@ jobs:
         working-directory: services/model-server
       - run: pytest ml/notebooks/test_nbsetup.py -q
       - run: python ml/notebooks/build_notebooks.py
-      - bash -n scripts/e2e_demo.sh
+      - run: bash -n scripts/e2e_demo.sh
 
   notebooks:
     # Executes every notebook end to end from a working directory that has no
