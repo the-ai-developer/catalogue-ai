@@ -1,10 +1,26 @@
-name: emdash
+name: wdtest
 on:
   push:
     branches: [main]
 jobs:
-  a:
+  go_wd:
     runs-on: ubuntu-latest
-    # comment with em dash — here
     steps:
-      - run: echo ok
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: services/api/go.sum
+      - run: go build ./...
+        working-directory: services/api
+  py_wd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo hi
+        working-directory: services/model-server
+  wd_missing_dir:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+        working-directory: does/not/exist
