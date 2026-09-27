@@ -1,4 +1,4 @@
-name: ci
+name: gopynb
 
 on:
   push:
