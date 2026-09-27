@@ -12,6 +12,11 @@ permissions:
 jobs:
   go:
     runs-on: ubuntu-latest
+    defaults:
+      # go.mod lives in services/api; running `go build ./...` from the repo
+      # root fails with "directory prefix . does not contain main module".
+      run:
+        working-directory: services/api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -22,7 +27,6 @@ jobs:
       - run: go vet ./...
       - run: test -z "$(gofmt -l .)"
       - run: go test ./...
-        working-directory: services/api
 
   python:
     runs-on: ubuntu-latest
@@ -49,8 +53,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install numpy pillow matplotlib torch --index-url https://download.pytorch.org/whl/cpu
-      - run: pip install faiss-cpu
+      # torch comes from the PyTorch CPU index; everything else from PyPI.
+      # Passing --index-url applies it to every package in the command, so
+      # numpy/pillow/matplotlib must be installed separately or they 404.
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install numpy pillow matplotlib faiss-cpu
       - run: python ml/data/make_synthetic_dataset.py --n 256
       - run: python ml/notebooks/run_notebooks.py 01 03 --require-deps
       # 02 trains a small seq2seq; it is the slowest, so keep it out of the
