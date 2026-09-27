@@ -1,0 +1,24 @@
+# Python model-server (GPU): FAISS + SBERT + CLIP + T5.
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+WORKDIR /app
+
+RUN useradd --create-home --uid 10001 appuser
+COPY services/model-server/pyproject.toml /app/services/model-server/pyproject.toml
+COPY services/model-server/app /app/services/model-server/app
+COPY ml /app/ml
+
+RUN pip install --no-cache-dir /app/services/model-server[ml,dev] 2>/dev/null || \
+    pip install --no-cache-dir fastapi "uvicorn[standard]" pydantic numpy faiss-cpu \
+        torch transformers sentence-transformers pillow safetensors
+
+WORKDIR /app/services/model-server
+ENV PYTHONUNBUFFERED=1 \
+    FAISS_INDEX_DIR=/data/faiss \
+    ASSET_ROOT=/data/assets \
+    DESC_MODEL_DIR=/app/ml/checkpoints/t5-description \
+    PROJECTION_PATH=/app/ml/checkpoints/projection/projection.pt
+USER appuser
+EXPOSE 8090
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/readyz').status==200 else 1)"
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8090", "--workers", "1"]

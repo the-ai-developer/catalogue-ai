@@ -1,0 +1,106 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: catalogue
+      POSTGRES_PASSWORD: catalogue
+      POSTGRES_DB: catalogue
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalogue -d catalogue"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.api
+    environment:
+      DATABASE_URL: postgres://catalogue:catalogue@postgres:5432/catalogue?sslmode=disable
+      HTTP_ADDR: ":8080"
+      MODEL_SERVER_URL: http://model:8090
+      ASSET_STORAGE_DIR: /data/assets
+      ASSET_PUBLIC_BASE_URL: /assets
+      BOOTSTRAP_API_KEYS: ${BOOTSTRAP_API_KEYS:-local-admin:6f7593f48eb57fc679c0b173ee15f27ea20f32b92d146e414327218a079ab479:admin}
+      LOG_LEVEL: info
+    volumes:
+      - assets:/data/assets
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  model:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.model
+    environment:
+      MODEL_DEVICE: ${MODEL_DEVICE:-cuda}
+      EMBED_DIM: "512"
+      FAISS_INDEX_DIR: /data/faiss
+      ASSET_ROOT: /data/assets
+      TEXT_INDEX_WEIGHT: "0.6"
+      IMAGE_INDEX_WEIGHT: "0.4"
+    volumes:
+      - assets:/data/assets
+      - faiss:/data/faiss
+      - checkpoints:/app/ml/checkpoints
+    # GPU serving — uncomment on a GPU host (requires nvidia-container-toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    depends_on:
+      - api
+    ports:
+      - "8090:8090"
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.web
+    volumes:
+      - assets:/data/assets:ro
+    depends_on:
+      - api
+    ports:
+      - "8081:80"
+
+  # 2×T4 training: docker compose --profile trainer run --rm trainer
+  trainer:
+    profiles: ["trainer"]
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.model
+    command: >
+      torchrun --nproc_per_node=2 /app/ml/training/train_t5_description.py
+      --train /app/ml/data/generated/train.jsonl
+      --val /app/ml/data/generated/val.jsonl
+      --out /app/ml/checkpoints/t5-description
+    environment:
+      MODEL_DEVICE: cuda
+    volumes:
+      - checkpoints:/app/ml/checkpoints
+      - ./ml/data:/app/ml/data
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 2
+    #           capabilities: [gpu]
+
+volumes:
+  pgdata:
+  assets:
+  faiss:
+  checkpoints:
