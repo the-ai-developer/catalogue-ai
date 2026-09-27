@@ -1,13 +1,7 @@
-name: onlygo
-
+name: xb
 on:
   push:
     branches: [main]
-  pull_request:
-  workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   go:
@@ -23,4 +17,3 @@ jobs:
       - run: test -z "$(gofmt -l .)"
       - run: go test ./...
         working-directory: services/api
-
