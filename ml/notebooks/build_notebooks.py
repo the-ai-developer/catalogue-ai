@@ -559,9 +559,13 @@ NOTEBOOKS = (
 def main() -> None:
     for name, doc in NOTEBOOKS:
         path = os.path.join(OUT, name)
-        with open(path, "w") as fh:
-            json.dump(doc, fh, indent=1)
-        with open(path) as fh:
+        # ensure_ascii=False keeps '·' and '—' as real characters, matching what
+        # Jupyter/VS Code/Colab write. With the default (escapes), every editor
+        # save shows the entire notebook as changed.
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=1, ensure_ascii=False)
+            fh.write("\n")
+        with open(path, encoding="utf-8") as fh:
             json.load(fh)  # validate
         print("wrote", path, f"({len(doc['cells'])} cells)")
 
