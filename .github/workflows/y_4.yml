@@ -1,0 +1,12 @@
+name: y4
+on:
+  push:
+    branches: [main]
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: go test ./...
+        working-directory: services/api
