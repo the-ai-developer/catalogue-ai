@@ -1,0 +1,10 @@
+name: asciionly
+on:
+  push:
+    branches: [main]
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    # plain ascii comment - here
+    steps:
+      - run: echo ok

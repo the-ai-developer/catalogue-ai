@@ -1,0 +1,10 @@
+name: emdash
+on:
+  push:
+    branches: [main]
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    # comment with em dash — here
+    steps:
+      - run: echo ok
