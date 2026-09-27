@@ -1,6 +1,7 @@
 # Catalogue AI — one-command workflows. `make help` lists targets.
 .PHONY: help up down logs psql migrate seed build test lint train-desc \
-        train-projection ingest-demo e2e-demo notebooks notebooks-smoke clean
+        train-projection ingest-demo e2e-demo notebooks notebooks-check \
+        notebooks-smoke clean
 
 COMPOSE ?= docker compose
 PY ?= python3
@@ -65,6 +66,12 @@ e2e-demo:  ## full scripted journey with assertions (needs running stack)
 
 notebooks:  ## regenerate the from-scratch ML notebooks
 	$(PY) ml/notebooks/build_notebooks.py
+
+notebooks-check:  ## fail if a committed notebook drifted from its generator
+	$(PY) ml/notebooks/build_notebooks.py
+	@git diff --exit-code -- ml/notebooks/ \
+	  || { echo "run 'make notebooks' and commit the result"; exit 1; }
+	@echo "notebooks match build_notebooks.py"
 
 clean:  ## remove build artefacts and generated data (keeps volumes)
 	rm -rf web/dist services/api/api ml/data/generated ml/runs

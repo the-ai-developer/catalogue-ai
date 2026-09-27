@@ -87,8 +87,15 @@ files — edit it, never the notebooks.
 
 ```bash
 make notebooks          # regenerate the .ipynb files
+make notebooks-check    # fail if a committed notebook drifted from its generator
 make notebooks-smoke    # execute every notebook from a detached cwd
 ```
+
+The `.ipynb` files are **generated artefacts** — `build_notebooks.py` is the only
+thing to edit. Saving a notebook from Jupyter, VS Code or Colab rewrites it
+(including cell outputs and execution counts), so `make notebooks-check` and a
+matching CI step fail the build if a committed notebook no longer matches the
+generator. Run `make notebooks` and commit the result.
 
 Each notebook's first cell is a bootstrap that locates the repository, adds
 `services/model-server` to `sys.path`, and generates the git-ignored synthetic
