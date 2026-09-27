@@ -22,21 +22,37 @@ Design constraints baked into every notebook:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 
 
+def _cell_id(index: int, body: str) -> str:
+    """Deterministic nbformat 4.5 cell id.
+
+    4.5 requires an ``id`` on every cell. Omitting one makes editors invent a
+    random id on save, which then shows up as notebook drift on the next
+    commit. Deriving the id from the cell's position and content keeps
+    regeneration idempotent.
+    """
+    seed = f"{index}\x00{body}".encode("utf-8")
+    return hashlib.sha256(seed).hexdigest()[:8]
+
+
 def nb(cells):
+    built = []
+    for index, (kind, body) in enumerate(cells):
+        common = {"id": _cell_id(index, body), "metadata": {},
+                  "source": body.splitlines(keepends=True)}
+        if kind == "md":
+            built.append({"cell_type": "markdown", **common})
+        else:
+            built.append({"cell_type": "code", "execution_count": None,
+                          "outputs": [], **common})
     return {
-        "cells": [
-            ({"cell_type": "markdown", "metadata": {},
-              "source": body.splitlines(keepends=True)} if kind == "md" else
-             {"cell_type": "code", "execution_count": None, "metadata": {},
-              "outputs": [], "source": body.splitlines(keepends=True)})
-            for kind, body in cells
-        ],
+        "cells": built,
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python",
                            "name": "python3"},
